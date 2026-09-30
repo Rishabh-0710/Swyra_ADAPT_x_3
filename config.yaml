@@ -1,0 +1,66 @@
+# ADAPT-X configuration. The project needs NO environment variables or secrets:
+# every setting is here (or a CLI flag of the experiment scripts).
+#
+#   python -m experiments.run_benchmark --config config.yaml
+#
+# Values marked (tuned) were chosen by `python -m experiments.tune_controller`
+# on the development families/seeds only (results/controller_tuning.csv).
+
+adaptx:
+  memory_budgets:
+    replay_capacity: 500        # K  labelled rows kept for replay
+    reference_capacity: 512     # R  unlabelled rows kept by the drift detector
+    max_stages: 8               # persistent learned functions in the model state
+    max_categories: 64          # frozen vocabulary per categorical feature
+    n_hash_buckets: 16          # overflow buckets for unseen categories
+    history_length: 50          # diagnostic reports kept
+
+  base_learner:
+    base_max_iter: 300
+    base_learning_rate: 0.08
+    max_leaf_nodes: 31
+    min_samples_leaf: 20
+    l2_regularization: 1.0
+    stage_max_leaf_nodes: 15
+    internal_holdout: 0.2
+    combiner_rows: all_new      # (tuned)
+
+  shift_detection:
+    alpha: 0.01                 # Benjamini-Hochberg FDR across per-feature tests
+    alpha_model: 0.05           # single concept / label-bias test per batch
+    psi_min_effect: 0.10
+    corr_min_effect: 0.20
+    loss_min_effect: 0.15
+    min_support_rows: 30
+
+  adaptation_controller:
+    stability_max: 0.25         # (tuned)
+    stability_min: 0.05
+    replay_weight_min: 1.0      # (tuned: down-weighting stale replay did not help on dev data)
+    stage_trees_min: 30
+    stage_trees_max: 300        # (tuned)
+    stage_learning_rate: 0.1
+    min_new_share: 0.2
+    max_new_share: 0.8
+
+  options:
+    use_drift_detection: true
+    adaptive_scaling: true
+    persistent_state: true
+    replay_strategy: stratified_diversity
+    use_target_encoding: false
+    random_seed: 42
+
+benchmark:
+  seeds: [0, 1, 2, 3, 4]        # evaluation seeds (tuning used 1001, 1002)
+  batch_size: 1000
+  holdout_fraction: 0.2
+  families:
+    - nonlinear_regression
+    - linear_regression
+    - nonlinear_classification
+    - interaction_classification
+    - mixed_classification
+    - highdim_regression
+    - heteroscedastic_regression
+    - imbalanced_classification
